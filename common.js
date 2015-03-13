@@ -1,31 +1,35 @@
+"use strict";
+
 // 验证类
-// 是否为空
-function required(value) {
+var rules = {
+    // 是否为空
+    required: function(value) {
         return $.trim(value).length != 0;
-    }
+    },
     // 手机
-function isPhone(value) {
+    isPhone: function(value) {
         return /^1[3|4|7|5|8][0-9]\d{8}$/.test(value);
-    }
+    },
     // 中文
-function isChinese(value) {
+    isChinese: function(value) {
         return /[\u4e00-\u9fa5]/.test(value);
-    }
+    },
     // 全数字
-function isNum(value) {
+    isNum: function(value) {
         return /^[0-9]\d*$/.test(value);
-    }
+    },
     // 身份证
-function isIdCard(value) {
+    isIdCard: function(value) {
         return /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/.test(value.toUpperCase());
-    }
+    },
     // 英文、数字、汉字
-function isUserName(value) {
+    isUserName: function(value) {
         return /^[a-zA-Z0-9\u4E00-\u9FA5]+$/.test(value);
-    }
+    },
     // 是否为RMB
-function isMoney(data, isPositive) {
-    return isPositive ? /^\d+(\.\d{1,2})?$/.test(data) && parseFloat(data) > 0 : /^(-)?\d+(\.\d{1,2})?$/.test(data);
+    isMoney: function(data, isPositive) {
+        return isPositive ? /^\d+(\.\d{1,2})?$/.test(data) && parseFloat(data) > 0 : /^(-)?\d+(\.\d{1,2})?$/.test(data);
+    }
 }
 
 
@@ -36,12 +40,28 @@ var utils = {
         var num = $.trim(v).replace(/\b(0+)/gi, "");
         return num;
     },
+    //获取字符串真实长度
+    getStrLength: function(str) {
+        var realLength = 0,
+            len = str.length,
+            charCode = -1;
+        for (var i = 0; i < len; i++) {
+            charCode = str.charCodeAt(i);
+            if (charCode >= 0 && charCode <= 128) realLength += 1;
+            else realLength += 2;
+        }
+        return realLength;
+    },
     // 格式化货币，满三位加逗号
     formatMoney: function(num, n) {
         num = String(num.toFixed(n ? n : 2));
         var re = /(-?\d+)(\d{3})/;
         while (re.test(num)) num = num.replace(re, "$1,$2")
         return n ? num : num.replace(/^([0-9,]+\.[1-9])0$/, "$1").replace(/^([0-9,]+)\.00$/, "$1");;
+    },
+    // 转百分号，小数后两位
+    numPercent: function(num) {
+        return (num * 100).toFixed(2) + "%";
     },
     // 判断有效的键盘输入
     validKeyPress: function(e) {
@@ -68,8 +88,30 @@ var utils = {
             return elm.selectionStart;
         }
     },
-    // 转百分号，小数后两位
-    numPercent: function(num) {
-        return (num * 100).toFixed(2) + "%";
+    /** 
+     * 倒计时函数
+     * @param o jQ对象
+     * @param v 默认文字
+     * @param s 时间 默认60
+     */
+    countDown: function(o, s) {
+        var v = o.val();
+        var s = s ? s : 60;
+        count(o, v, s);
+
+        function count(o, v, s) {
+            if (s > 0) {
+                o.attr('disabled', 'true');
+                s--;
+                o.val(v + "(" + s + ")");
+                setTimeout(function() {
+                    count(o, v, s);
+                }, 1000);
+            } else {
+                o.removeAttr('disabled');
+                o.val(v);
+            }
+        }
     }
+
 }
