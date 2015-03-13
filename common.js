@@ -91,10 +91,10 @@ var utils = {
     /** 
      * 倒计时函数
      * @param o jQ对象
-     * @param v 默认文字
      * @param s 时间 默认60
      */
     countDown: function(o, s) {
+        //v是默认文字
         var v = o.val();
         var s = s ? s : 60;
         count(o, v, s);
