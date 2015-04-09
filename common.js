@@ -1,12 +1,12 @@
 "use strict";
 /**
  * 智交易手机版公共js
- * version: 1.0.0 (Fri, 27 March 2015)
+ * version: 1.1.0 (Wed, 8 April 2015)
  * @author taosiwei
  * @requires jQuery v1.8.3 or later
  * @requires Fancybox v2.1.5 or later
  * Website at http://m.dev.zhijiaoyi.org/
- * ©2011-2015 All rights reserved | 郎bank *
+ * ©2011-2015 All rights reserved | 郎bank
  */
 
 
@@ -242,6 +242,7 @@ $.fn.validate = function(options) {
         }
         // 表单提交
         if (!settings.ajaxForm) {
+            $.fancybox.showLoading();
             settings.submitBtn.removeAttr("disabled");
             that.submit();
         } else {
@@ -256,37 +257,38 @@ $.fn.validate = function(options) {
             };
             // ajax提交
             $.ajax({
-                    url: that.attr("action"),
+                    url: that.attr("action") ? that.attr("action") : ajaxForm.url,
                     type: that.attr("method") ? that.attr("method") : "POST",
                     dataType: ajaxForm.dataType ? ajaxForm.dataType : "json",
                     data: ajaxForm.data,
                     success: function(response) {
                         switch (response.status) {
-                            case 0:
-                                // 返回错误提示
-                                settings.errorElement.html(response.msg);
-                                break;
                             case 1:
                                 // 返回成功跳转
-                                window.location.href = response.return_url;
+                                if (response.popup === false) {
+                                    window.location.href = response.return_url;
+                                } else {
+                                    txtBox(response.msg);
+                                    setTimeout(function() {
+                                        window.location.href = response.return_url;
+                                    }, 2000);
+                                }
                                 break;
                             default:
-                                // 异常错误提示
+                                // 返回错误提示
                                 settings.errorElement.html(response.msg);
+                                if (response.error_login && response.error_login >= 3) {
+                                    $("#valimg").show();
+                                };
                         }
                     }
                 })
-                .done(function() {
-                    // console.log("请求成功");
-                })
                 .fail(function() {
-                    // console.warn("请求失败");
                     txtBox("请求失败,请拨打客服热线：400 867 8833。");
                 })
                 .always(function() {
                     $.fancybox.hideLoading();
                     settings.submitBtn.removeAttr("disabled");
-                    // console.log("请求完成");
                 });
 
         };
@@ -300,6 +302,12 @@ var utils = {
     getNum: function(v) {
         var num = $.trim(v).replace(/\b(0+)/gi, "");
         return num;
+    },
+    formatMoney: function(num, n) {
+        num = String(num.toFixed(n ? n : 2));
+        var re = /(-?\d+)(\d{3})/;
+        while (re.test(num)) num = num.replace(re, "$1,$2")
+        return n ? num : num.replace(/^([0-9,]+\.[1-9])0$/, "$1").replace(/^([0-9,]+)\.00$/, "$1");;
     },
     //获取字符串真实长度
     getStrLength: function(str) {
@@ -360,7 +368,7 @@ function commonFancybox(content, showcloseBtn, closeOnOver) {
     return $.fancybox(content, {
         closeBtn: showcloseBtn,
         padding: 0,
-        minWidth: 300,
+        minWidth: 270,
         minHeight: 50,
         helpers: {
             overlay: {
@@ -379,16 +387,6 @@ function lackMoneyBox(balance, jumpUrl) {
         '<div class="btn-cell"><a href="' + jumpUrl + '" class="btn-small">充值</a></div>' +
         '</div>' +
         '</div>';
-    commonFancybox(content, true, false);
-}
-//未添加银行卡时提现 cardBox("请先添加银行卡，然后再申请提现！","立即添加","http://baidu.com/");
-function cardBox(txt, btnTxt,jumpUrl) {
-    var content = '<div class="popup-box">' +
-        '<p class="txt1">' + txt + '</p>' +
-        '<div class="btn-box">' +
-        '<div class="btn-cell"><a href="' +jumpUrl + '" class="btn-small">'+btnTxt+'</a></div>' +
-        '</div>' +
-        '</div>';
     commonFancybox(content, false, false);
 }
 
@@ -404,13 +402,25 @@ function confirmBox(txt, ajaxFun) {
     commonFancybox(content, false, false);
 }
 
-// 纯信息提示弹窗 txtBox("请阅读并同意签署《借款协议》")
+// 纯文字弹窗 txtBox("请阅读并同意签署《借款协议》")
 function txtBox(txt) {
     var content = '<div class="popup-box">' +
         '<p class="txt1">' + txt + '</p>' +
         '</div>';
-    commonFancybox(content, true, true);
+    commonFancybox(content, false, true);
 }
+
+// 文字 + 按钮 txtBtnBox("请先添加银行卡，然后再申请提现！","立即添加","http://baidu.com/");
+function txtBtnBox(txt, btnTxt, jumpUrl) {
+    var content = '<div class="popup-box">' +
+        '<p class="txt1">' + txt + '</p>' +
+        '<div class="btn-box">' +
+        '<div class="btn-cell"><a href="' + jumpUrl + '" class="btn-small">' + btnTxt + '</a></div>' +
+        '</div>' +
+        '</div>';
+    commonFancybox(content, false, false);
+}
+
 
 
 // 功能类
@@ -490,7 +500,7 @@ $.fn.CountDown = function(options) {
             seconds: 60,
             disableClass: "",
             oldText: that.val() ? that.val() : that.text(),
-            showText: false
+            showText: true
         }, options);
 
     function Count(obj, second, className, oldText, showText) {
@@ -499,13 +509,13 @@ $.fn.CountDown = function(options) {
             second--;
             var text;
             if (showText) {
-                text = oldText + "(" + second.toString() + ")";
+                text = "已发送(" + second.toString() + ")";
             } else {
                 text = "(" + second.toString() + ")";
             }
             obj.val() ? obj.val(text) : obj.text(text);
             setTimeout(function() {
-                Count(obj, second, className, oldText)
+                Count(obj, second, className, oldText, showText)
             }, 1000);
         } else {
             obj.removeAttr('disabled').removeClass(className);
